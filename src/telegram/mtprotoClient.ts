@@ -1,4 +1,5 @@
 import { Api, TelegramClient } from 'teleproto'
+import { CustomFile } from 'teleproto/client/uploads.js'
 import PQueue from 'p-queue'
 import type { TelegramCredentials } from './session.js'
 import { createClient } from './session.js'
@@ -26,7 +27,7 @@ export class MtprotoClient {
   async sendFile(chatId: string, buffer: Buffer, opts: SendFileOptions): Promise<{ id: number }> {
     return this.withRetry(async () => {
       const message = await this.client.sendFile(chatId, {
-        file: buffer,
+        file: new CustomFile(opts.fileName, buffer.length, '', buffer),
         attributes: [new Api.DocumentAttributeFilename({ fileName: opts.fileName })],
         forceDocument: true,
         workers: 1,
