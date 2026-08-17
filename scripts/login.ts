@@ -3,6 +3,12 @@ import { stdin, stdout } from 'node:process'
 import { TelegramClient } from 'teleproto'
 import { StringSession } from 'teleproto/sessions/index.js'
 
+try {
+  process.loadEnvFile()
+} catch {
+  // no .env file present, fall back to already-set env vars
+}
+
 async function main() {
   const apiId = Number(process.env.TELEGRAM_API_ID)
   const apiHash = process.env.TELEGRAM_API_HASH
