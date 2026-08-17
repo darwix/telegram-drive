@@ -23,12 +23,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "better-sqlite3": "^11.10.0",
     "p-queue": "^8.0.1",
+    "postgres": "^3.4.9",
     "teleproto": "^1.228.5"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.10.5",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",

@@ -2,13 +2,13 @@ import { createHash } from 'node:crypto'
 import { MtprotoClient } from './telegram/mtprotoClient.js'
 import { loadCredentialsFromEnv } from './telegram/session.js'
 import { DEFAULT_MAX_CHUNK_SIZE, reassembleChunks, splitChunks } from './telegram/chunking.js'
-import { SqliteIndexStore } from './index/sqlite.js'
+import { PostgresIndexStore } from './index/postgres.js'
 import type { IndexStore, IndexRow } from './index/types.js'
 import type { ObjectRef, PutOptions, TelegramDriveClient } from './types.js'
 
 export interface CreateClientOptions {
   chatId?: string
-  indexPath?: string
+  connectionString?: string
   indexStore?: IndexStore
   maxChunkSize?: number
 }
@@ -32,7 +32,11 @@ export function createTelegramDriveClient(opts: CreateClientOptions = {}): Teleg
   if (!chatId) throw new Error('chatId required (pass opts.chatId or set TELEGRAM_DRIVE_CHAT_ID)')
 
   const maxChunkSize = opts.maxChunkSize ?? DEFAULT_MAX_CHUNK_SIZE
-  const index = opts.indexStore ?? new SqliteIndexStore(opts.indexPath ?? process.env.DRIVE_INDEX_PATH ?? './drive-index.sqlite')
+  const connectionString = opts.connectionString ?? process.env.DRIVE_INDEX_DATABASE_URL
+  if (!opts.indexStore && !connectionString) {
+    throw new Error('connectionString required (pass opts.connectionString or set DRIVE_INDEX_DATABASE_URL)')
+  }
+  const index = opts.indexStore ?? new PostgresIndexStore(connectionString!)
   const mtproto = new MtprotoClient(loadCredentialsFromEnv())
 
   let connected: Promise<void> | null = null

@@ -1,24 +1,24 @@
 import { randomUUID } from 'node:crypto'
-import { unlinkSync } from 'node:fs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createTelegramDriveClient } from '../src/client.js'
 import type { TelegramDriveClient } from '../src/types.js'
 
-// Requires real Telegram credentials (TELEGRAM_API_ID/HASH/SESSION, TELEGRAM_DRIVE_CHAT_ID).
+// Requires real Telegram credentials (TELEGRAM_API_ID/HASH/SESSION, TELEGRAM_DRIVE_CHAT_ID)
+// and a reachable Postgres instance (DRIVE_INDEX_DATABASE_URL).
 // Not run in CI or by default — run manually once creds are available.
-const hasCreds = !!process.env.TELEGRAM_SESSION
+const hasCreds = !!process.env.TELEGRAM_SESSION && !!process.env.DRIVE_INDEX_DATABASE_URL
 
 describe.skipIf(!hasCreds)('TelegramDriveClient integration', () => {
-  const indexPath = `./test-drive-index-${randomUUID()}.sqlite`
   const testPrefix = `test/${randomUUID()}/`
   let client: TelegramDriveClient
 
   beforeAll(() => {
-    client = createTelegramDriveClient({ indexPath })
+    client = createTelegramDriveClient()
   })
 
-  afterAll(() => {
-    unlinkSync(indexPath)
+  afterAll(async () => {
+    const rows = await client.list(testPrefix)
+    await Promise.all(rows.map((row) => client.delete(row.key)))
   })
 
   it('puts and gets a small object', async () => {
@@ -42,7 +42,7 @@ describe.skipIf(!hasCreds)('TelegramDriveClient integration', () => {
   it('round-trips a chunked object', async () => {
     const key = `${testPrefix}chunked.bin`
     const bytes = Buffer.alloc(250, 42)
-    const chunkedClient = createTelegramDriveClient({ indexPath, maxChunkSize: 100 })
+    const chunkedClient = createTelegramDriveClient({ maxChunkSize: 100 })
     const ref = await chunkedClient.put(key, bytes)
     expect(ref.chunked).toBe(true)
     expect(ref.chunkCount).toBe(3)
