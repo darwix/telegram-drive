@@ -1,3 +1,7 @@
+import { randomUUID } from 'node:crypto'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { Api, TelegramClient } from 'teleproto'
 import { CustomFile } from 'teleproto/client/uploads.js'
 import PQueue from 'p-queue'
@@ -25,15 +29,26 @@ export class MtprotoClient {
   }
 
   async sendFile(chatId: string, buffer: Buffer, opts: SendFileOptions): Promise<{ id: number }> {
-    return this.withRetry(async () => {
-      const message = await this.client.sendFile(chatId, {
-        file: new CustomFile(opts.fileName, buffer.length, '', buffer),
-        attributes: [new Api.DocumentAttributeFilename({ fileName: opts.fileName })],
-        forceDocument: true,
-        workers: 1,
+    // teleproto's uploadFile streams from disk (via CustomFile.path) for any
+    // file above its internal ~20MB in-memory buffer threshold. We only ever
+    // hold in-memory buffers, so large uploads need a real temp file on disk.
+    const tmpDir = await mkdtemp(path.join(tmpdir(), 'telegram-drive-'))
+    const tmpPath = path.join(tmpDir, `${randomUUID()}-${opts.fileName}`)
+    await writeFile(tmpPath, buffer)
+
+    try {
+      return await this.withRetry(async () => {
+        const message = await this.client.sendFile(chatId, {
+          file: new CustomFile(opts.fileName, buffer.length, tmpPath),
+          attributes: [new Api.DocumentAttributeFilename({ fileName: opts.fileName })],
+          forceDocument: true,
+          workers: 1,
+        })
+        return { id: message.id }
       })
-      return { id: message.id }
-    })
+    } finally {
+      await rm(tmpDir, { recursive: true, force: true })
+    }
   }
 
   async downloadMedia(chatId: string, messageId: number): Promise<Buffer> {
