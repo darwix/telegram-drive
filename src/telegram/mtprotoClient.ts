@@ -32,8 +32,11 @@ export class MtprotoClient {
     // teleproto's uploadFile streams from disk (via CustomFile.path) for any
     // file above its internal ~20MB in-memory buffer threshold. We only ever
     // hold in-memory buffers, so large uploads need a real temp file on disk.
+    // fileName may contain path separators (e.g. a key like "Photos/pic.png"),
+    // so the temp filename uses only its basename to stay a flat file, never
+    // an implied subdirectory.
     const tmpDir = await mkdtemp(path.join(tmpdir(), 'telegram-drive-'))
-    const tmpPath = path.join(tmpDir, `${randomUUID()}-${opts.fileName}`)
+    const tmpPath = path.join(tmpDir, `${randomUUID()}-${path.basename(opts.fileName)}`)
     await writeFile(tmpPath, buffer)
 
     try {
