@@ -1,5 +1,5 @@
-import { TelegramClient } from 'telegram'
-import { StringSession } from 'telegram/sessions/index.js'
+import { TelegramClient } from 'teleproto'
+import { StringSession } from 'teleproto/sessions/index.js'
 
 export interface TelegramCredentials {
   apiId: number

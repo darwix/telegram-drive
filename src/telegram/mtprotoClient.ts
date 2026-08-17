@@ -1,4 +1,4 @@
-import { Api, TelegramClient } from 'telegram'
+import { Api, TelegramClient } from 'teleproto'
 import PQueue from 'p-queue'
 import type { TelegramCredentials } from './session.js'
 import { createClient } from './session.js'

@@ -11,7 +11,9 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "dev": "tsx watch src/index.ts",
@@ -21,9 +23,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "telegram": "^2.26.16",
     "better-sqlite3": "^11.10.0",
-    "p-queue": "^8.0.1"
+    "p-queue": "^8.0.1",
+    "teleproto": "^1.228.5"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
