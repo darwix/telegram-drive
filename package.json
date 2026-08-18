@@ -16,6 +16,7 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
+    "prepare": "npm run build",
     "dev": "tsx watch src/index.ts",
     "login": "tsx scripts/login.ts",
     "test": "vitest run",
