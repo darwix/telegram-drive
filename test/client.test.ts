@@ -58,3 +58,27 @@ describe.skipIf(!hasCreds)('TelegramDriveClient integration', () => {
     await expect(Promise.all(puts)).resolves.toHaveLength(5)
   })
 })
+
+describe('createTelegramDriveClient sessionString override', () => {
+  it('does not throw when sessionString is passed even without TELEGRAM_SESSION set', () => {
+    const savedSession = process.env.TELEGRAM_SESSION
+    const savedApiId = process.env.TELEGRAM_API_ID
+    const savedApiHash = process.env.TELEGRAM_API_HASH
+    delete process.env.TELEGRAM_SESSION
+    process.env.TELEGRAM_API_ID = '123456'
+    process.env.TELEGRAM_API_HASH = 'test_hash'
+    try {
+      expect(() =>
+        createTelegramDriveClient({
+          chatId: '-1',
+          connectionString: 'postgres://fake',
+          sessionString: '',
+        })
+      ).not.toThrow()
+    } finally {
+      if (savedSession !== undefined) process.env.TELEGRAM_SESSION = savedSession
+      if (savedApiId !== undefined) process.env.TELEGRAM_API_ID = savedApiId
+      if (savedApiHash !== undefined) process.env.TELEGRAM_API_HASH = savedApiHash
+    }
+  })
+})

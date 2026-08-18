@@ -11,6 +11,7 @@ export interface CreateClientOptions {
   connectionString?: string
   indexStore?: IndexStore
   maxChunkSize?: number
+  sessionString?: string
 }
 
 function rowToRef(row: IndexRow): ObjectRef {
@@ -37,7 +38,7 @@ export function createTelegramDriveClient(opts: CreateClientOptions = {}): Teleg
     throw new Error('connectionString required (pass opts.connectionString or set DRIVE_INDEX_DATABASE_URL)')
   }
   const index = opts.indexStore ?? new PostgresIndexStore(connectionString!)
-  const mtproto = new MtprotoClient(loadCredentialsFromEnv())
+  const mtproto = new MtprotoClient(loadCredentialsFromEnv(opts.sessionString))
 
   let connected: Promise<void> | null = null
   async function ensureConnected() {
