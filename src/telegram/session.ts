@@ -1,10 +1,15 @@
 import { TelegramClient } from 'teleproto'
 import { StringSession } from 'teleproto/sessions/index.js'
+import type { SocketFactory } from 'teleproto/extensions/index.js'
 
 export interface TelegramCredentials {
   apiId: number
   apiHash: string
   sessionString: string
+}
+
+export interface CreateClientOptions {
+  networkSocket?: SocketFactory
 }
 
 export function loadCredentialsFromEnv(sessionStringOverride?: string): TelegramCredentials {
@@ -19,8 +24,9 @@ export function loadCredentialsFromEnv(sessionStringOverride?: string): Telegram
   return { apiId, apiHash, sessionString }
 }
 
-export function createClient(creds: TelegramCredentials): TelegramClient {
+export function createClient(creds: TelegramCredentials, options?: CreateClientOptions): TelegramClient {
   return new TelegramClient(new StringSession(creds.sessionString), creds.apiId, creds.apiHash, {
     connectionRetries: 5,
+    ...(options?.networkSocket ? { networkSocket: options.networkSocket } : {}),
   })
 }
