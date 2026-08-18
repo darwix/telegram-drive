@@ -21,4 +21,5 @@ export interface TelegramDriveClient {
   head(key: string): Promise<ObjectRef | null>
   delete(key: string): Promise<void>
   list(prefix?: string): Promise<ObjectRef[]>
+  disconnect(): Promise<void>
 }

@@ -101,5 +101,10 @@ export function createTelegramDriveClient(opts: CreateClientOptions = {}): Teleg
       const rows = await index.list(prefix)
       return rows.map(rowToRef)
     },
+
+    async disconnect() {
+      if (!connected) return
+      await mtproto.disconnect()
+    },
   }
 }
