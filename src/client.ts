@@ -5,6 +5,7 @@ import { DEFAULT_MAX_CHUNK_SIZE, reassembleChunks, splitChunks } from './telegra
 import { PostgresIndexStore } from './index/postgres.js'
 import type { IndexStore, IndexRow } from './index/types.js'
 import type { ObjectRef, PutOptions, TelegramDriveClient } from './types.js'
+import type { SocketFactory } from 'teleproto/extensions/index.js'
 
 export interface CreateClientOptions {
   chatId?: string
@@ -12,6 +13,7 @@ export interface CreateClientOptions {
   indexStore?: IndexStore
   maxChunkSize?: number
   sessionString?: string
+  networkSocket?: SocketFactory
 }
 
 function rowToRef(row: IndexRow): ObjectRef {
@@ -38,7 +40,7 @@ export function createTelegramDriveClient(opts: CreateClientOptions = {}): Teleg
     throw new Error('connectionString required (pass opts.connectionString or set DRIVE_INDEX_DATABASE_URL)')
   }
   const index = opts.indexStore ?? new PostgresIndexStore(connectionString!)
-  const mtproto = new MtprotoClient(loadCredentialsFromEnv(opts.sessionString))
+  const mtproto = new MtprotoClient(loadCredentialsFromEnv(opts.sessionString), { networkSocket: opts.networkSocket })
 
   let connected: Promise<void> | null = null
   async function ensureConnected() {

@@ -1,10 +1,7 @@
-import { randomUUID } from 'node:crypto'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import path from 'node:path'
 import { Api, TelegramClient } from 'teleproto'
 import { CustomFile } from 'teleproto/client/uploads.js'
 import PQueue from 'p-queue'
+import type { SocketFactory } from 'teleproto/extensions/index.js'
 import type { TelegramCredentials } from './session.js'
 import { createClient } from './session.js'
 
@@ -13,13 +10,17 @@ export interface SendFileOptions {
   mimeType?: string
 }
 
+export interface MtprotoClientOptions {
+  networkSocket?: SocketFactory
+}
+
 export class MtprotoClient {
   private client: TelegramClient
   private connected = false
   private queue = new PQueue({ concurrency: 1 })
 
-  constructor(creds: TelegramCredentials) {
-    this.client = createClient(creds)
+  constructor(creds: TelegramCredentials, options?: MtprotoClientOptions) {
+    this.client = createClient(creds, options)
   }
 
   async connect(): Promise<void> {
@@ -29,29 +30,25 @@ export class MtprotoClient {
   }
 
   async sendFile(chatId: string, buffer: Buffer, opts: SendFileOptions): Promise<{ id: number }> {
-    // teleproto's uploadFile streams from disk (via CustomFile.path) for any
-    // file above its internal ~20MB in-memory buffer threshold. We only ever
-    // hold in-memory buffers, so large uploads need a real temp file on disk.
-    // fileName may contain path separators (e.g. a key like "Photos/pic.png"),
-    // so the temp filename uses only its basename to stay a flat file, never
-    // an implied subdirectory.
-    const tmpDir = await mkdtemp(path.join(tmpdir(), 'telegram-drive-'))
-    const tmpPath = path.join(tmpDir, `${randomUUID()}-${path.basename(opts.fileName)}`)
-    await writeFile(tmpPath, buffer)
-
-    try {
-      return await this.withRetry(async () => {
-        const message = await this.client.sendFile(chatId, {
-          file: new CustomFile(opts.fileName, buffer.length, tmpPath),
-          attributes: [new Api.DocumentAttributeFilename({ fileName: opts.fileName })],
-          forceDocument: true,
-          workers: 1,
-        })
-        return { id: message.id }
+    return this.withRetry(async () => {
+      // uploadFile is called directly (rather than passing the CustomFile to
+      // sendFile) so maxBufferSize can be forced above the buffer's size —
+      // teleproto's sendFile always reads from CustomFile.path via node:fs
+      // once fileSize exceeds its internal 20MB default, which doesn't exist
+      // on Workers. Uploading via buffer only keeps this fs-free everywhere.
+      const handle = await this.client.uploadFile({
+        file: new CustomFile(opts.fileName, buffer.length, '', buffer),
+        maxBufferSize: buffer.length,
+        workers: 1,
       })
-    } finally {
-      await rm(tmpDir, { recursive: true, force: true })
-    }
+      const message = await this.client.sendFile(chatId, {
+        file: handle,
+        attributes: [new Api.DocumentAttributeFilename({ fileName: opts.fileName })],
+        forceDocument: true,
+        workers: 1,
+      })
+      return { id: message.id }
+    })
   }
 
   async downloadMedia(chatId: string, messageId: number): Promise<Buffer> {
